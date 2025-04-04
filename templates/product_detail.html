@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.Name }} - Product Details{% endblock %}
+
+{% block head %}
+<style>
+    /* Additional styles specific to this page */
+    .product-colors {
+        display: flex;
+        margin-top: 15px;
+    }
+    
+    .color-swatch {
+        width: 40px;
+        height: 40px;
+        margin-right: 10px;
+        border: 1px solid #ccc;
+        border-radius: 50%;
+    }
+    
+    .property-pill {
+        display: inline-block;
+        padding: 6px 12px;
+        margin: 5px;
+        border-radius: 15px;
+        font-size: 0.9rem;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        /* Remove background so the color will be fully applied via JavaScript */
+        background: none; 
+        /* Add a subtle text shadow for better readability */
+        text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+        /* Add a subtle border for definition */
+        border: 1px solid rgba(0,0,0,0.08);
+    }
+    
+    .property-pill:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+        /* Increase brightness on hover */
+        filter: brightness(1.1);
+    }
+    
+    .product-properties {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 0;
+    }
+    
+    .crafting-tree {
+        margin-top: 30px;
+    }
+    
+    .crafting-step {
+        padding: 15px;
+        margin-bottom: 15px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        border-left: 6px solid #666;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+    
+    .crafting-step:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transform: translateX(3px);
+    }
+    
+    .crafting-step .ingredients {
+        margin-top: 5px;
+        padding-left: 15px;
+        color: #666;
+    }
+    
+    .crafting-step .plus {
+        margin: 0 5px;
+        color: #999;
+    }
+    
+    .drug-type-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+    
+    .type-0 {
+        background-color: #4CAF50;
+        color: white;
+    }
+    
+    .type-1 {
+        background-color: #2196F3;
+        color: white;
+    }
+    
+    .type-2 {
+        background-color: #F44336;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="product-detail">
+    <a href="/" class="back-btn">&larr; Back to Products</a>
+    
+    <div class="product-header">
+        <h2>{{ product.Name }}</h2>
+        
+        <div class="drug-type-badge type-{{ product.DrugType }}">
+            {% if product.DrugType == 0 %}
+                Weed
+            {% elif product.DrugType == 1 %}
+                Meth
+            {% elif product.DrugType == 2 %}
+                Cocaine
+            {% else %}
+                Unknown
+            {% endif %}
+        </div>
+        
+        <div class="product-id-display">ID: {{ product_id }}</div>
+        <div class="product-price-display">${{ price }}</div>
+    </div>
+    
+    <div class="product-section">
+        <h3>Appearance</h3>
+        <div class="product-appearance">
+            <div class="product-color-large" style="background: linear-gradient(135deg, 
+                rgb({{ product.AppearanceSettings.MainColor.r }}, 
+                    {{ product.AppearanceSettings.MainColor.g }}, 
+                    {{ product.AppearanceSettings.MainColor.b }}) 0%, 
+                rgb({{ product.AppearanceSettings.SecondaryColor.r }}, 
+                    {{ product.AppearanceSettings.SecondaryColor.g }}, 
+                    {{ product.AppearanceSettings.SecondaryColor.b }}) 100%);">
+            </div>
+            
+            <div class="product-colors">
+                <div>
+                    <div class="color-swatch" style="background-color: rgb({{ product.AppearanceSettings.MainColor.r }}, 
+                                                               {{ product.AppearanceSettings.MainColor.g }}, 
+                                                               {{ product.AppearanceSettings.MainColor.b }});"></div>
+                    <div>Main Color</div>
+                </div>
+                <div>
+                    <div class="color-swatch" style="background-color: rgb({{ product.AppearanceSettings.SecondaryColor.r }}, 
+                                                               {{ product.AppearanceSettings.SecondaryColor.g }}, 
+                                                               {{ product.AppearanceSettings.SecondaryColor.b }});"></div>
+                    <div>Secondary Color</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="product-section">
+        <h3>Properties</h3>
+        <div class="product-properties">
+            {% for property in product.Properties %}
+                <span class="property-pill" id="property-{{ property }}">{{ property }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="product-section">
+        <h3>Crafting Recipe</h3>
+        <div class="crafting-tree">
+            {% for step in crafting_tree %}
+                {% if step.id in product_details and product_details[step.id].AppearanceSettings %}
+                    <div class="crafting-step" style="
+                        background: linear-gradient(135deg, 
+                            rgba({{ product_details[step.id].AppearanceSettings.MainColor.r }}, 
+                                {{ product_details[step.id].AppearanceSettings.MainColor.g }}, 
+                                {{ product_details[step.id].AppearanceSettings.MainColor.b }}, 0.2) 0%, 
+                            rgba({{ product_details[step.id].AppearanceSettings.SecondaryColor.r }}, 
+                                {{ product_details[step.id].AppearanceSettings.SecondaryColor.g }}, 
+                                {{ product_details[step.id].AppearanceSettings.SecondaryColor.b }}, 0.2) 100%);
+                        border-left-color: rgb({{ product_details[step.id].AppearanceSettings.MainColor.r }}, 
+                                           {{ product_details[step.id].AppearanceSettings.MainColor.g }}, 
+                                           {{ product_details[step.id].AppearanceSettings.MainColor.b }});">
+                {% else %}
+                    <div class="crafting-step">
+                {% endif %}
+                    <div class="result">
+                        <strong>{{ step.id }}</strong>
+                        {% if step.id in product_details %}
+                            ({{ product_details[step.id].Name }})
+                        {% endif %}
+                    </div>
+                    
+                    {% if step.ingredients %}
+                        <div class="ingredients">
+                            = <span>{{ step.ingredients[0] }}</span>
+                            <span class="plus">+</span>
+                            <span>{{ step.ingredients[1] }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/effects.js') }}"></script>
+<script>
+    // Apply colors to property pills based on the effect name
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get all property pills
+        const propertyPills = document.querySelectorAll('.property-pill');
+        
+        // Apply color to each pill based on the effect name
+        propertyPills.forEach(pill => {
+            const effectName = pill.textContent.trim();
+            const color = getEffectColor(effectName);
+            
+            // Apply the color as background with higher opacity
+            pill.style.backgroundColor = color + '99'; // 99 is 60% opacity in hex
+            
+            // Set text color to black or white based on background color brightness
+            const brightness = getBrightness(color);
+            pill.style.color = brightness > 128 ? '#222' : '#fff';
+            pill.style.fontWeight = '500';
+            
+            // Add a bold colored border
+            pill.style.border = `4px solid ${color}`;
+            
+            // Add a slight inset shadow for depth
+            pill.style.boxShadow = `inset 0 0 0 1px rgba(255,255,255,0.2), 0 1px 3px rgba(0,0,0,0.1)`;
+        });
+    });
+    
+    // Helper function to determine if text should be black or white based on background brightness
+    function getBrightness(color) {
+        // Handle RGB format: rgb(123, 123, 123)
+        if (color.startsWith('rgb')) {
+            const rgbValues = color.match(/\d+/g);
+            if (rgbValues && rgbValues.length >= 3) {
+                const r = parseInt(rgbValues[0]);
+                const g = parseInt(rgbValues[1]);
+                const b = parseInt(rgbValues[2]);
+                return (r * 299 + g * 587 + b * 114) / 1000;
+            }
+        }
+        
+        // Handle hex format: #RRGGBB
+        if (color.startsWith('#')) {
+            const hex = color.substring(1);
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+            return (r * 299 + g * 587 + b * 114) / 1000;
+        }
+        
+        // Default if we can't parse the color
+        return 200;
+    }
+</script>
+{% endblock %}

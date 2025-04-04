@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}All Products - Drug Lab{% endblock %}
+
+{% block head %}
+<style>
+    /* Additional styles specific to this page */
+    .filter-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f5f5f5;
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Product List</h2>
+
+<div class="filter-section">
+    <div class="search-container">
+        <input type="text" id="product-search" placeholder="Search products...">
+    </div>
+    <div class="filter-controls">
+        <select id="product-sort">
+            <option value="name-asc">Sort by Name (A-Z)</option>
+            <option value="name-desc">Sort by Name (Z-A)</option>
+            <option value="price-asc">Sort by Price (Low to High)</option>
+            <option value="price-desc">Sort by Price (High to Low)</option>
+        </select>
+        <select id="drug-type-filter">
+            <option value="all">All Drug Types</option>
+            <option value="0">Weed</option>
+            <option value="1">Meth</option>
+            <option value="2">Cocaine</option>
+        </select>
+    </div>
+</div>
+
+<div class="product-grid">
+    {% for product_id in products %}
+        <div class="product-card" 
+             data-id="{{ product_id }}" 
+             data-price="{{ price_map.get(product_id, 0) }}"
+             data-type="{{ product_details.get(product_id, {}).get('DrugType', -1) }}">
+            
+            {% if product_id in product_details %}
+                {% set product = product_details[product_id] %}
+                <div class="product-color" style="background: linear-gradient(135deg, 
+                    rgb({{ product.AppearanceSettings.MainColor.r }}, 
+                        {{ product.AppearanceSettings.MainColor.g }}, 
+                        {{ product.AppearanceSettings.MainColor.b }}) 0%, 
+                    rgb({{ product.AppearanceSettings.SecondaryColor.r }}, 
+                        {{ product.AppearanceSettings.SecondaryColor.g }}, 
+                        {{ product.AppearanceSettings.SecondaryColor.b }}) 100%);">
+                </div>
+                <h3 class="product-name">{{ product.Name }}</h3>
+                <p class="product-id">ID: {{ product_id }}</p>
+                
+                <div class="product-type-badge type-{{ product.DrugType }}">
+                    {% if product.DrugType == 0 %}
+                        Weed
+                    {% elif product.DrugType == 1 %}
+                        Meth
+                    {% elif product.DrugType == 2 %}
+                        Cocaine
+                    {% else %}
+                        Unknown
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="product-color product-color-default"></div>
+                <h3 class="product-name">{{ product_id }}</h3>
+                <p class="product-id">ID: {{ product_id }}</p>
+            {% endif %}
+            
+            <p class="product-price">${{ price_map.get(product_id, 0) }}</p>
+            <a href="{{ url_for('product_detail', product_id=product_id) }}" class="btn">View Details</a>
+        </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('product-search');
+        const sortSelect = document.getElementById('product-sort');
+        const typeFilter = document.getElementById('drug-type-filter');
+        const productCards = document.querySelectorAll('.product-card');
+        const productGrid = document.querySelector('.product-grid');
+        
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            applyFilters();
+        });
+        
+        // Sort functionality
+        sortSelect.addEventListener('change', function() {
+            applyFilters();
+        });
+        
+        // Filter by drug type
+        typeFilter.addEventListener('change', function() {
+            applyFilters();
+        });
+        
+        function applyFilters() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const sortValue = sortSelect.value;
+            const typeValue = typeFilter.value;
+            
+            // Step 1: Filter the products
+            productCards.forEach(card => {
+                const productName = card.querySelector('.product-name').textContent.toLowerCase();
+                const productId = card.dataset.id.toLowerCase();
+                const productType = card.dataset.type;
+                
+                const matchesSearch = productName.includes(searchTerm) || productId.includes(searchTerm);
+                const matchesType = typeValue === 'all' || productType === typeValue;
+                
+                if (matchesSearch && matchesType) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Step 2: Sort the visible products
+            const productsArray = Array.from(productCards).filter(card => card.style.display !== 'none');
+            
+            switch(sortValue) {
+                case 'name-asc':
+                    productsArray.sort((a, b) => {
+                        return a.querySelector('.product-name').textContent.localeCompare(
+                            b.querySelector('.product-name').textContent
+                        );
+                    });
+                    break;
+                case 'name-desc':
+                    productsArray.sort((a, b) => {
+                        return b.querySelector('.product-name').textContent.localeCompare(
+                            a.querySelector('.product-name').textContent
+                        );
+                    });
+                    break;
+                case 'price-asc':
+                    productsArray.sort((a, b) => {
+                        return parseInt(a.dataset.price) - parseInt(b.dataset.price);
+                    });
+                    break;
+                case 'price-desc':
+                    productsArray.sort((a, b) => {
+                        return parseInt(b.dataset.price) - parseInt(a.dataset.price);
+                    });
+                    break;
+            }
+            
+            // Re-append sorted items to the grid
+            productsArray.forEach(card => {
+                productGrid.appendChild(card);
+            });
+        }
+    });
+</script>
+{% endblock %}
